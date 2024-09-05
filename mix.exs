@@ -14,7 +14,7 @@ defmodule ProcessingLibrary.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :exq],
+      extra_applications: [:logger],
       mod: {ProcessingLibrary.Application, []}
     ]
   end

@@ -1,7 +1,7 @@
 defmodule ProcessingLibrary.Redis do
   use GenServer
 
-  @namespace "processing_library"
+  @namespace ProcessingLibrary.get_namespace()
 
   def start_link(_init_arg) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -16,12 +16,20 @@ defmodule ProcessingLibrary.Redis do
     "#{@namespace}:#{queue}"
   end
 
+  defp channel_with_namespace(queue) do
+    "#{@namespace}:#{queue}"
+  end
+
   def queue(queue, value) do
     GenServer.call(__MODULE__, {:queue, queue_with_namespace(queue), value})
   end
 
   def dequeue(queue) do
     GenServer.call(__MODULE__, {:dequeue, queue_with_namespace(queue)})
+  end
+
+  def publish(channel, job) do
+    GenServer.call(__MODULE__, {:publish, channel_with_namespace(channel), job})
   end
 
   def get_last_in_queue(queue) do
@@ -44,6 +52,11 @@ defmodule ProcessingLibrary.Redis do
 
   def handle_call({:get_queue, queue}, _from, conn) do
     response = Redix.command(conn, ["LRANGE", queue, "0", "-1"])
+    {:reply, response, conn}
+  end
+
+  def handle_call({:publish, channel, job}, _from, conn) do
+    response = Redix.command(conn, ["PUBLISH", channel, job])
     {:reply, response, conn}
   end
 

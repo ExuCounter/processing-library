@@ -8,7 +8,8 @@ defmodule ProcessingLibrary.Supervisor do
   @impl true
   def init(:ok) do
     children = [
-      ProcessingLibrary.Redis
+      ProcessingLibrary.Redis,
+      ProcessingLibrary.QueueWorker
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
