@@ -58,6 +58,7 @@ defmodule ProcessingLibrary do
       )
 
       ProcessingLibrary.Redis.dequeue(queue_name)
+      ProcessingLibrary.publish_last_task(queue_name)
     rescue
       e ->
         Logger.error(
