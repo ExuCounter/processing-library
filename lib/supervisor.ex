@@ -7,10 +7,18 @@ defmodule ProcessingLibrary.Supervisor do
 
   @impl true
   def init(:ok) do
-    children = [
-      ProcessingLibrary.Redis,
-      ProcessingLibrary.QueueWorker
-    ]
+    children = []
+
+    children =
+      if Mix.env() != :test do
+        children ++
+          [
+            ProcessingLibrary.Redis,
+            ProcessingLibrary.QueueWorker
+          ]
+      else
+        children
+      end
 
     Supervisor.init(children, strategy: :one_for_one)
   end
