@@ -9,8 +9,20 @@ end
 defmodule ProcessingLibrary do
   require Logger
 
-  def get_namespace() do
-    Application.fetch_env!(:processing_library, :namespace)
+  def get_redis_namespace() do
+    Application.fetch_env!(:processing_library, :redis_namespace)
+  end
+
+  def get_redis_database() do
+    Application.fetch_env!(:processing_library, :redis_database)
+  end
+
+  def get_redis_port() do
+    Application.fetch_env!(:processing_library, :redis_port)
+  end
+
+  def get_redis_host() do
+    Application.fetch_env!(:processing_library, :redis_host)
   end
 
   def log_context(%ProcessingLibrary.Job{worker_module: worker_module, jid: jid}) do
@@ -34,7 +46,7 @@ defmodule ProcessingLibrary do
   def enqueue(queue_name, worker_module, params) do
     job_data = prepare_job_data(queue_name, worker_module, params)
     json = Jason.encode!(job_data)
-    ProcessingLibrary.Redis.queue(queue_name, json)
+    ProcessingLibrary.Redis.enqueue(queue_name, json)
   end
 
   def process_task(%ProcessingLibrary.Job{

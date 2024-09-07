@@ -1,47 +1,63 @@
 defmodule ProcessingLibrary.Redis do
   use GenServer
 
-  @namespace ProcessingLibrary.get_namespace()
+  @namespace ProcessingLibrary.get_redis_namespace()
 
   def start_link(_init_arg) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
+  def init(), do: init(nil)
+
   def init(_init_arg) do
-    {:ok, conn} = Redix.start_link("redis://localhost:6379")
+    {:ok, conn} =
+      Redix.start_link(
+        host: ProcessingLibrary.get_redis_host(),
+        port: ProcessingLibrary.get_redis_port(),
+        database: ProcessingLibrary.get_redis_database()
+      )
+
     {:ok, conn}
   end
 
-  defp queue_with_namespace(queue) do
-    "#{@namespace}:#{queue}"
+  defp namespaced(key) do
+    "#{@namespace}:#{key}"
   end
 
-  defp channel_with_namespace(queue) do
-    "#{@namespace}:#{queue}"
+  def flush_db() do
+    GenServer.call(__MODULE__, :flush_db)
   end
 
-  def keys_with_namespace() do
-    GenServer.call(__MODULE__, :keys_with_namespace)
+  def get_keys() do
+    GenServer.call(__MODULE__, :keys)
   end
 
-  def queue(queue, value) do
-    GenServer.call(__MODULE__, {:queue, queue_with_namespace(queue), value})
+  def enqueue(queue, value) do
+    GenServer.call(__MODULE__, {:queue, namespaced(queue), value})
   end
 
   def dequeue(queue) do
-    GenServer.call(__MODULE__, {:dequeue, queue_with_namespace(queue)})
+    GenServer.call(__MODULE__, {:dequeue, namespaced(queue)})
   end
 
   def publish(channel, job) do
-    GenServer.call(__MODULE__, {:publish, channel_with_namespace(channel), job})
+    GenServer.call(__MODULE__, {:publish, namespaced(channel), job})
   end
 
   def get_last_in_queue(queue) do
-    GenServer.call(__MODULE__, {:get_last_in_queue, queue_with_namespace(queue)})
+    GenServer.call(__MODULE__, {:get_last_in_queue, namespaced(queue)})
   end
 
   def get_queue(queue) do
-    GenServer.call(__MODULE__, {:get_queue, queue_with_namespace(queue)})
+    GenServer.call(__MODULE__, {:get_queue, namespaced(queue)})
+  end
+
+  def get_queues() do
+    GenServer.call(__MODULE__, :get_queues)
+  end
+
+  def set(key, value) do
+    GenServer.call(__MODULE__, {:set, namespaced(key), value})
   end
 
   def filter_keys(conn, keys, type) do
@@ -51,36 +67,54 @@ defmodule ProcessingLibrary.Redis do
   end
 
   def filter_queues(conn, keys) do
-    filter_keys(conn, keys, "queues")
+    filter_keys(conn, keys, "list")
   end
 
   def handle_call({:queue, queue, value}, _from, conn) do
-    response = Redix.command(conn, ["LPUSH", queue, value])
+    response = Redix.command(conn, ~w(LPUSH #{queue} #{value}))
     {:reply, response, conn}
   end
 
   def handle_call({:dequeue, queue}, _from, conn) do
-    response = Redix.command(conn, ["RPOP", queue])
+    response = Redix.command(conn, ~w(RPOP #{queue}))
     {:reply, response, conn}
   end
 
   def handle_call({:get_queue, queue}, _from, conn) do
-    response = Redix.command(conn, ["LRANGE", queue, "0", "-1"])
+    response = Redix.command(conn, ~w(LRANGE #{queue} 0 -1))
     {:reply, response, conn}
   end
 
   def handle_call({:publish, channel, job}, _from, conn) do
-    response = Redix.command(conn, ["PUBLISH", channel, job])
+    response = Redix.command(conn, ~w(PUBLISH #{channel} #{job}))
     {:reply, response, conn}
   end
 
   def handle_call({:get_last_in_queue, queue}, _from, conn) do
-    response = Redix.command(conn, ["LRANGE", queue, "-1", "-1"])
+    response = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
     {:reply, response, conn}
   end
 
-  def handle_call(:keys_with_namespace, _from, conn) do
-    response = Redix.command(conn, ["KEYS", "#{@namespace}:*"])
+  def handle_call(:keys, _from, conn) do
+    response = Redix.command(conn, ~w(KEYS #{@namespace}:*))
+    IO.inspect(response)
+    {:reply, response, conn}
+  end
+
+  def handle_call(:get_queues, _from, conn) do
+    {:ok, keys} = Redix.command(conn, ~w(KEYS #{@namespace}:*))
+    queues = ProcessingLibrary.Redis.filter_queues(conn, keys)
+
+    {:reply, {:ok, queues}, conn}
+  end
+
+  def handle_call(:flush_db, _from, conn) do
+    response = Redix.command(conn, ~w(FLUSHDB))
+    {:reply, response, conn}
+  end
+
+  def handle_call({:set, key, value}, _from, conn) do
+    response = Redix.command(conn, ~w(SET #{key} #{value}))
     {:reply, response, conn}
   end
 end
