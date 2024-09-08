@@ -8,15 +8,8 @@ defmodule RedisTest do
   end
 
   test "only queues supported" do
-    job = %{
-      params: ["param"],
-      worker_module: ProcessingLibrary.SimpleWorker,
-      queue: "queue",
-      jid: "jid"
-    }
-
-    ProcessingLibrary.Redis.enqueue("queue1", Jason.encode!(job))
-    ProcessingLibrary.Redis.enqueue("queue2", Jason.encode!(job))
+    ProcessingLibrary.Enqueuer.enqueue("queue1", ProcessingLibrary.DummyWorker, params: ["param"])
+    ProcessingLibrary.Enqueuer.enqueue("queue2", ProcessingLibrary.DummyWorker, params: ["param"])
 
     ProcessingLibrary.Redis.set("dummy_key", "dummy_value")
 

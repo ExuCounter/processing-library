@@ -1,8 +1,6 @@
 defmodule ProcessingLibrary.Redis do
   use GenServer
 
-  @namespace ProcessingLibrary.get_redis_namespace()
-
   def start_link(_init_arg) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -12,16 +10,16 @@ defmodule ProcessingLibrary.Redis do
   def init(_init_arg) do
     {:ok, conn} =
       Redix.start_link(
-        host: ProcessingLibrary.get_redis_host(),
-        port: ProcessingLibrary.get_redis_port(),
-        database: ProcessingLibrary.get_redis_database()
+        host: ProcessingLibrary.Env.get_redis_host(),
+        port: ProcessingLibrary.Env.get_redis_port(),
+        database: ProcessingLibrary.Env.get_redis_database()
       )
 
     {:ok, conn}
   end
 
   defp namespaced(key) do
-    "#{@namespace}:#{key}"
+    "#{ProcessingLibrary.Env.get_redis_namespace()}:#{key}"
   end
 
   def flush_db() do
@@ -92,17 +90,19 @@ defmodule ProcessingLibrary.Redis do
 
   def handle_call({:get_last_in_queue, queue}, _from, conn) do
     response = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
-    {:reply, response, conn}
-  end
-
-  def handle_call(:keys, _from, conn) do
-    response = Redix.command(conn, ~w(KEYS #{@namespace}:*))
     IO.inspect(response)
     {:reply, response, conn}
   end
 
+  def handle_call(:keys, _from, conn) do
+    response = Redix.command(conn, ~w(KEYS #{ProcessingLibrary.Env.get_redis_namespace()}:*))
+    {:reply, response, conn}
+  end
+
   def handle_call(:get_queues, _from, conn) do
-    {:ok, keys} = Redix.command(conn, ~w(KEYS #{@namespace}:*))
+    {:ok, keys} =
+      Redix.command(conn, ~w(KEYS #{ProcessingLibrary.Env.get_redis_namespace()}:*))
+
     queues = ProcessingLibrary.Redis.filter_queues(conn, keys)
 
     {:reply, {:ok, queues}, conn}

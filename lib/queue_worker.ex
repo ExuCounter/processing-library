@@ -4,7 +4,9 @@ defmodule ProcessingLibrary.QueueWorker do
 
   def init(_init_arg) do
     {:ok, pubsub_conn} = Redix.PubSub.start_link()
-    subscribe_to_queues(pubsub_conn, ["#{ProcessingLibrary.get_namespace()}:main"])
+    {:ok, queues} = ProcessingLibrary.Redis.get_queues()
+
+    subscribe_to_queues(pubsub_conn, queues)
     {:ok, %{pubsub_conn: pubsub_conn}}
   end
 
@@ -19,7 +21,7 @@ defmodule ProcessingLibrary.QueueWorker do
   end
 
   def handle_info({:redix_pubsub, _pubsub_conn, _ref, :message, %{payload: payload}}, state) do
-    ProcessingLibrary.process_task(payload)
+    ProcessingLibrary.Job.process_job(payload)
     {:noreply, state}
   end
 
@@ -28,3 +30,7 @@ defmodule ProcessingLibrary.QueueWorker do
     {:noreply, state}
   end
 end
+
+# tests
+# worker (check all queues and run them, think about concurrency)
+# refactoring, recheck robert martin about separation of the concepts
