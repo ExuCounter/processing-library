@@ -9,7 +9,10 @@ defmodule ProcessingLibrary.Job do
 
   def publish_last_job(queue_name) do
     {:ok, job_json} = ProcessingLibrary.Redis.get_last_in_queue(queue_name)
-    ProcessingLibrary.Redis.publish(queue_name, job_json)
+
+    if not is_nil(job_json) do
+      ProcessingLibrary.Redis.publish(queue_name, job_json)
+    end
   end
 
   def construct(queue_name, worker_module, params) do

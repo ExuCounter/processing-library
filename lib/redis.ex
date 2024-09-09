@@ -89,9 +89,13 @@ defmodule ProcessingLibrary.Redis do
   end
 
   def handle_call({:get_last_in_queue, queue}, _from, conn) do
-    response = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
-    IO.inspect(response)
-    {:reply, response, conn}
+    {:ok, last} = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
+
+    if last == [] do
+      {:reply, {:ok, nil}, conn}
+    else
+      {:reply, {:ok, last}, conn}
+    end
   end
 
   def handle_call(:keys, _from, conn) do

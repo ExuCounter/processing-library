@@ -7,6 +7,7 @@ defmodule ProcessingLibrary.QueueWorker do
     {:ok, queues} = ProcessingLibrary.Redis.get_queues()
 
     subscribe_to_queues(pubsub_conn, queues)
+    start_workers(queues)
     {:ok, %{pubsub_conn: pubsub_conn}}
   end
 
@@ -17,6 +18,14 @@ defmodule ProcessingLibrary.QueueWorker do
   def subscribe_to_queues(conn, patterns) do
     Enum.each(patterns, fn pattern ->
       Redix.PubSub.subscribe(conn, pattern, self())
+    end)
+  end
+
+  def start_workers(queues) do
+    Enum.each(queues, fn queue ->
+      namespace = ProcessingLibrary.Env.get_redis_namespace()
+      ^namespace <> ":" <> queue = queue
+      ProcessingLibrary.Job.publish_last_job(queue)
     end)
   end
 
