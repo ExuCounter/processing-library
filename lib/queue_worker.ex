@@ -15,9 +15,13 @@ defmodule ProcessingLibrary.QueueWorker do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
+  def subscribe_to_queue(conn, pattern) do
+    Redix.PubSub.subscribe(conn, pattern, self())
+  end
+
   def subscribe_to_queues(conn, patterns) do
     Enum.each(patterns, fn pattern ->
-      Redix.PubSub.subscribe(conn, pattern, self())
+      subscribe_to_queue(conn, pattern)
     end)
   end
 
