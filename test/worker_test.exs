@@ -24,7 +24,7 @@ defmodule WorkerTest do
     queue2 = ProcessingLibrary.Redis.get_queue("queue2")
 
     assert {:ok, [_job1]} = queue1
-    assert {:ok, [_job1, _job2, _job3]} = queue2
+    assert {:ok, [_job2, _job3, _job4]} = queue2
 
     ProcessingLibrary.QueueWorker.start_link(nil)
 
@@ -34,8 +34,8 @@ defmodule WorkerTest do
     queue2 = ProcessingLibrary.Redis.get_queue("queue2")
     dead_letter_queue = ProcessingLibrary.Redis.get_queue("dead-letter")
 
-    assert {:ok, []} == queue1
-    assert {:ok, []} == queue2
-    assert {:ok, [_job1]} == dead_letter_queue
+    assert {:ok, []} = queue1
+    assert {:ok, []} = queue2
+    assert {:ok, [_job5]} = dead_letter_queue
   end
 end

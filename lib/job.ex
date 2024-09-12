@@ -42,6 +42,7 @@ defmodule ProcessingLibrary.Job do
     rescue
       _ ->
         Logger.error("#{log_context(job)})} failed with exception")
+        job = %{job | queue: "dead-letter"}
         ProcessingLibrary.Enqueuer.enqueue(job)
     end
 
