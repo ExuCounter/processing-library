@@ -7,9 +7,9 @@ defmodule RedisTest do
     %{conn: conn}
   end
 
-  test "only queues supported" do
-    ProcessingLibrary.Enqueuer.enqueue("queue1", ProcessingLibrary.DummyWorker, params: ["param"])
-    ProcessingLibrary.Enqueuer.enqueue("queue2", ProcessingLibrary.DummyWorker, params: ["param"])
+  test "track queues only" do
+    ProcessingLibrary.Enqueuer.enqueue("queue1", ProcessingLibrary.DummyWorker, ["param"])
+    ProcessingLibrary.Enqueuer.enqueue("queue2", ProcessingLibrary.DummyWorker, ["param"])
 
     ProcessingLibrary.Redis.set("dummy_key", "dummy_value")
 

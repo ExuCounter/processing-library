@@ -7,7 +7,8 @@ defmodule ProcessingLibrary.QueueWorker do
     {:ok, queues} = ProcessingLibrary.Redis.get_queues()
 
     subscribe_to_queues(pubsub_conn, queues)
-    start(queues)
+    start_processing(queues)
+
     {:ok, %{pubsub_conn: pubsub_conn}}
   end
 
@@ -15,17 +16,13 @@ defmodule ProcessingLibrary.QueueWorker do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
-  def subscribe_to_queue(conn, pattern) do
-    Redix.PubSub.subscribe(conn, pattern, self())
-  end
-
   def subscribe_to_queues(conn, patterns) do
     Enum.each(patterns, fn pattern ->
-      subscribe_to_queue(conn, pattern)
+      Redix.PubSub.subscribe(conn, pattern, self())
     end)
   end
 
-  def start(queues) do
+  def start_processing(queues) do
     Enum.each(queues, fn queue ->
       namespace = ProcessingLibrary.Env.get_redis_namespace()
       ^namespace <> ":" <> queue = queue
@@ -43,7 +40,3 @@ defmodule ProcessingLibrary.QueueWorker do
     {:noreply, state}
   end
 end
-
-# tests
-# worker (check all queues and run them, think about concurrency)
-# refactoring, recheck robert martin about separation of the concepts

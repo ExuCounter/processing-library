@@ -1,7 +1,16 @@
 defmodule ProcessingLibrary.Enqueuer do
   def enqueue(queue_name, worker_module, params) do
     job_data = ProcessingLibrary.Job.construct(queue_name, worker_module, params)
-    json = Jason.encode!(job_data)
-    ProcessingLibrary.Redis.enqueue(queue_name, json)
+    serialized_job_data = ProcessingLibrary.Job.serialize(job_data)
+    ProcessingLibrary.Redis.enqueue(queue_name, serialized_job_data)
+
+    {:ok, job_data}
+  end
+
+  def enqueue(%ProcessingLibrary.Job{} = job_data) do
+    serialized_job_data = ProcessingLibrary.Job.serialize(job_data)
+    ProcessingLibrary.Redis.enqueue(job_data.queue, serialized_job_data)
+
+    {:ok, job_data}
   end
 end

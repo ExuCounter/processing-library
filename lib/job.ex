@@ -24,40 +24,32 @@ defmodule ProcessingLibrary.Job do
     }
   end
 
-  def process_job(%ProcessingLibrary.Job{
-        worker_module: worker_module,
-        params: params,
-        queue: queue_name,
-        jid: jid
-      }) do
-    Logger.info(
-      "#{log_context(%ProcessingLibrary.Job{worker_module: worker_module, jid: jid})} start"
-    )
+  def serialize(%ProcessingLibrary.Job{} = job), do: Jason.encode!(job)
+
+  def deserialize(job_json),
+    do: struct(ProcessingLibrary.Job, Jason.decode!(job_json, keys: :atoms))
+
+  def process_job(%ProcessingLibrary.Job{} = job) do
+    Logger.info("#{log_context(job)} start")
 
     try do
       start_time = DateTime.utc_now()
-      apply(worker_module |> String.to_atom(), :perform, [params])
+      apply(job.worker_module |> String.to_atom(), :perform, [job.params])
       finish_time = DateTime.utc_now()
       diff_time = DateTime.diff(finish_time, start_time, :millisecond)
 
-      Logger.info(
-        "#{log_context(%ProcessingLibrary.Job{worker_module: worker_module, jid: jid})} )} finished in #{diff_time}ms"
-      )
-
-      ProcessingLibrary.Redis.dequeue(queue_name)
-      ProcessingLibrary.Job.publish_last_job(queue_name)
+      Logger.info("#{log_context(job)} )} finished in #{diff_time}ms")
     rescue
-      e ->
-        Logger.error(
-          "#{log_context(%ProcessingLibrary.Job{worker_module: worker_module, jid: jid})})} failed with exception"
-        )
-
-        reraise e, __STACKTRACE__
+      _ ->
+        Logger.error("#{log_context(job)})} failed with exception")
+        ProcessingLibrary.Enqueuer.enqueue(job)
     end
+
+    ProcessingLibrary.Redis.dequeue(job.queue)
+    ProcessingLibrary.Job.publish_last_job(job.queue)
   end
 
-  def process_job(job_json) do
-    job = struct(ProcessingLibrary.Job, Jason.decode!(job_json, keys: :atoms))
-    process_job(job)
+  def process_job(job_json) when is_bitstring(job_json) do
+    job_json |> deserialize() |> process_job()
   end
 end
