@@ -19,7 +19,13 @@ defmodule ProcessingLibrary.Redis do
   end
 
   defp namespaced(key) do
-    "#{ProcessingLibrary.Env.get_redis_namespace()}:#{key}"
+    namespace = ProcessingLibrary.Env.get_redis_namespace()
+
+    if String.contains?(key, namespace) do
+      key
+    else
+      "#{namespace}:#{key}"
+    end
   end
 
   def flush_db() do
@@ -60,7 +66,8 @@ defmodule ProcessingLibrary.Redis do
 
   def filter_keys(conn, keys, type) do
     Enum.filter(keys, fn key ->
-      Redix.command!(conn, ["TYPE", key]) == type
+      Redix.command!(conn, ["TYPE", key]) == type and key !== namespaced("dead-letter") and
+        key !== namespaced("success")
     end)
   end
 

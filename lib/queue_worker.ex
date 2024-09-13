@@ -30,8 +30,11 @@ defmodule ProcessingLibrary.QueueWorker do
     end)
   end
 
-  def handle_info({:redix_pubsub, _pubsub_conn, _ref, :message, %{payload: payload}}, state) do
-    ProcessingLibrary.Job.process_job(payload)
+  def handle_info(
+        {:redix_pubsub, _pubsub_conn, _ref, :message, %{payload: payload, channel: queue}},
+        state
+      ) do
+    ProcessingLibrary.Job.process_job(queue, payload)
     {:noreply, state}
   end
 

@@ -1,6 +1,6 @@
 defmodule ProcessingLibrary.Job do
-  @derive {Jason.Encoder, only: [:params, :worker_module, :queue, :jid]}
-  defstruct params: [], worker_module: nil, queue: nil, jid: nil
+  @derive {Jason.Encoder, only: [:params, :worker_module, :jid]}
+  defstruct params: [], worker_module: nil, jid: nil
   require Logger
 
   def log_context(%ProcessingLibrary.Job{worker_module: worker_module, jid: jid}) do
@@ -15,11 +15,10 @@ defmodule ProcessingLibrary.Job do
     end
   end
 
-  def construct(queue_name, worker_module, params) do
+  def construct(worker_module, params) do
     %ProcessingLibrary.Job{
       params: params,
       worker_module: worker_module,
-      queue: queue_name,
       jid: UUID.uuid4()
     }
   end
@@ -29,7 +28,7 @@ defmodule ProcessingLibrary.Job do
   def deserialize(job_json),
     do: struct(ProcessingLibrary.Job, Jason.decode!(job_json, keys: :atoms))
 
-  def process_job(%ProcessingLibrary.Job{} = job) do
+  def process_job(%ProcessingLibrary.Job{} = job, queue) do
     Logger.info("#{log_context(job)} start")
 
     try do
@@ -39,18 +38,19 @@ defmodule ProcessingLibrary.Job do
       diff_time = DateTime.diff(finish_time, start_time, :millisecond)
 
       Logger.info("#{log_context(job)} )} finished in #{diff_time}ms")
+
+      ProcessingLibrary.Enqueuer.enqueue("success", job)
     rescue
       _ ->
         Logger.error("#{log_context(job)})} failed with exception")
-        job = %{job | queue: "dead-letter"}
-        ProcessingLibrary.Enqueuer.enqueue(job)
+        ProcessingLibrary.Enqueuer.enqueue("dead-letter", job)
     end
 
-    ProcessingLibrary.Redis.dequeue(job.queue)
-    ProcessingLibrary.Job.publish_last_job(job.queue)
+    ProcessingLibrary.Redis.dequeue(queue)
+    ProcessingLibrary.Job.publish_last_job(queue)
   end
 
-  def process_job(job_json) when is_bitstring(job_json) do
-    job_json |> deserialize() |> process_job()
+  def process_job(queue, job_json) when is_bitstring(job_json) do
+    job_json |> deserialize() |> process_job(queue)
   end
 end
