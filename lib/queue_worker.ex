@@ -3,8 +3,8 @@ defmodule ProcessingLibrary.QueueWorker do
   require Logger
 
   def init(_init_arg) do
-    {:ok, pubsub_conn} = Redix.PubSub.start_link()
-    {:ok, queues} = ProcessingLibrary.Redis.get_queues()
+    {:ok, pubsub_conn} = ProcessingLibrary.PubSub.start_link()
+    {:ok, queues} = ProcessingLibrary.Database.get_queues()
 
     subscribe_to_queues(pubsub_conn, queues)
     start_processing(queues)

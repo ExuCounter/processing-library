@@ -2,8 +2,8 @@ defmodule WorkerTest do
   use ExUnit.Case
 
   setup do
-    {:ok, conn} = ProcessingLibrary.Redis.start_link(nil)
-    ProcessingLibrary.Redis.flush_db()
+    {:ok, conn} = ProcessingLibrary.Database.start_link(nil)
+    ProcessingLibrary.Database.flush()
     %{conn: conn}
   end
 
@@ -20,8 +20,8 @@ defmodule WorkerTest do
     {:ok, _job} =
       ProcessingLibrary.Enqueuer.enqueue("queue2", ProcessingLibrary.DummyWorker, :success)
 
-    queue1 = ProcessingLibrary.Redis.get_queue("queue1")
-    queue2 = ProcessingLibrary.Redis.get_queue("queue2")
+    queue1 = ProcessingLibrary.Database.get_queue("queue1")
+    queue2 = ProcessingLibrary.Database.get_queue("queue2")
 
     assert {:ok, [_job1]} = queue1
     assert {:ok, [_job2, _job3, _job4]} = queue2
@@ -30,9 +30,9 @@ defmodule WorkerTest do
 
     Process.sleep(500)
 
-    queue1 = ProcessingLibrary.Redis.get_queue("queue1")
-    queue2 = ProcessingLibrary.Redis.get_queue("queue2")
-    dead_letter_queue = ProcessingLibrary.Redis.get_queue("dead-letter")
+    queue1 = ProcessingLibrary.Database.get_queue("queue1")
+    queue2 = ProcessingLibrary.Database.get_queue("queue2")
+    dead_letter_queue = ProcessingLibrary.Database.get_queue("dead-letter")
 
     assert {:ok, []} = queue1
     assert {:ok, []} = queue2

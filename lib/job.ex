@@ -8,10 +8,10 @@ defmodule ProcessingLibrary.Job do
   end
 
   def publish_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Redis.get_last_in_queue(queue_name)
+    {:ok, job_json} = ProcessingLibrary.Queue.get_last(queue_name)
 
     if not is_nil(job_json) do
-      ProcessingLibrary.Redis.publish(queue_name, job_json)
+      ProcessingLibrary.PubSub.publish(queue_name, job_json)
     end
   end
 
@@ -46,7 +46,7 @@ defmodule ProcessingLibrary.Job do
         ProcessingLibrary.Enqueuer.enqueue("dead-letter", job)
     end
 
-    ProcessingLibrary.Redis.dequeue(queue)
+    ProcessingLibrary.Dequeuer.dequeue(queue)
     ProcessingLibrary.Job.publish_last_job(queue)
   end
 

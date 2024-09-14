@@ -36,6 +36,10 @@ defmodule ProcessingLibrary.Redis do
     GenServer.call(__MODULE__, :keys)
   end
 
+  def remove(queue, value) do
+    GenServer.call(__MODULE__, {:remove, namespaced(queue), value})
+  end
+
   def enqueue(queue, value) do
     GenServer.call(__MODULE__, {:queue, namespaced(queue), value})
   end
@@ -127,5 +131,10 @@ defmodule ProcessingLibrary.Redis do
   def handle_call({:set, key, value}, _from, conn) do
     response = Redix.command(conn, ~w(SET #{key} #{value}))
     {:reply, response, conn}
+  end
+
+  def handle_call({:remove, queue, value}, _from, conn) do
+    {:ok, _count} = Redix.command(conn, ~w(LREM #{queue} 0 #{value}))
+    {:reply, :ok, conn}
   end
 end

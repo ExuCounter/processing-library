@@ -13,7 +13,7 @@ defmodule ProcessingLibrary.Supervisor do
       if Mix.env() != :test do
         children ++
           [
-            ProcessingLibrary.Redis,
+            ProcessingLibrary.Database,
             ProcessingLibrary.QueueWorker
           ]
       else

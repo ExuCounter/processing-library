@@ -2,8 +2,8 @@ defmodule RedisTest do
   use ExUnit.Case
 
   setup do
-    {:ok, conn} = ProcessingLibrary.Redis.start_link(nil)
-    ProcessingLibrary.Redis.flush_db()
+    {:ok, conn} = ProcessingLibrary.Database.start_link(nil)
+    ProcessingLibrary.Database.flush()
     %{conn: conn}
   end
 
@@ -11,10 +11,10 @@ defmodule RedisTest do
     ProcessingLibrary.Enqueuer.enqueue("queue1", ProcessingLibrary.DummyWorker, ["param"])
     ProcessingLibrary.Enqueuer.enqueue("queue2", ProcessingLibrary.DummyWorker, ["param"])
 
-    ProcessingLibrary.Redis.set("dummy_key", "dummy_value")
+    ProcessingLibrary.Database.set("dummy_key", "dummy_value")
 
-    {:ok, keys} = ProcessingLibrary.Redis.get_keys()
-    {:ok, queues} = ProcessingLibrary.Redis.get_queues()
+    {:ok, keys} = ProcessingLibrary.Database.get_keys()
+    {:ok, queues} = ProcessingLibrary.Database.get_queues()
 
     assert keys == [
              "processing_library:dummy_key",
