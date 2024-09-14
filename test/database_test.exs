@@ -1,4 +1,4 @@
-defmodule RedisTest do
+defmodule DatabaseTest do
   use ExUnit.Case
 
   setup do

@@ -1,9 +1,11 @@
 defmodule ProcessingLibrary.Dequeuer do
-  def remove(queue_name, job_data) do
-    serialized_job_data = ProcessingLibrary.Job.serialize(job_data)
-    ProcessingLibrary.Queue.remove(queue_name, serialized_job_data)
+  def remove(queue_name, job_id) do
+    {:ok, jobs} = ProcessingLibrary.Database.get_queue(queue_name)
+    job = Enum.find(jobs, fn job -> ProcessingLibrary.Job.deserialize(job).jid == job_id end)
 
-    {:ok, job_data}
+    with :ok <- ProcessingLibrary.Queue.remove(queue_name, job) do
+      {:ok, ProcessingLibrary.Job.deserialize(job)}
+    end
   end
 
   defdelegate dequeue(queue), to: ProcessingLibrary.Redis, as: :dequeue

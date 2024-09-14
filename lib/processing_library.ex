@@ -44,7 +44,7 @@ defmodule ProcessingLibrary do
     to: ProcessingLibrary.Dequeuer,
     as: :dequeue
 
-  defdelegate remove(queue, job_data),
+  defdelegate remove(queue, job_id),
     to: ProcessingLibrary.Dequeuer,
     as: :remove
 
