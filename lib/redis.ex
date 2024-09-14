@@ -18,6 +18,8 @@ defmodule ProcessingLibrary.Redis do
     {:ok, conn}
   end
 
+  defp namespaced(key) when is_atom(key), do: namespaced(key |> Atom.to_string())
+
   defp namespaced(key) do
     namespace = ProcessingLibrary.Env.get_redis_namespace()
 
@@ -70,8 +72,8 @@ defmodule ProcessingLibrary.Redis do
 
   def filter_keys(conn, keys, type) do
     Enum.filter(keys, fn key ->
-      Redix.command!(conn, ["TYPE", key]) == type and key !== namespaced("dead-letter") and
-        key !== namespaced("success")
+      Redix.command!(conn, ["TYPE", key]) == type and key !== namespaced(:processed) and
+        key !== namespaced(:failed)
     end)
   end
 

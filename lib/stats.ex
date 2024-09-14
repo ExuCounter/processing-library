@@ -1,11 +1,11 @@
 defmodule ProcessingLibrary.Stats do
   def stat(:failed) do
-    {:ok, jobs} = ProcessingLibrary.Database.get_queue("dead-letter")
+    {:ok, jobs} = ProcessingLibrary.Database.get_queue(:failed)
     length(jobs)
   end
 
   def stat(:processed) do
-    {:ok, jobs} = ProcessingLibrary.Database.get_queue("success")
+    {:ok, jobs} = ProcessingLibrary.Database.get_queue(:processed)
     length(jobs)
   end
 

@@ -39,11 +39,11 @@ defmodule ProcessingLibrary.Job do
 
       Logger.info("#{log_context(job)} )} finished in #{diff_time}ms")
 
-      ProcessingLibrary.Enqueuer.enqueue("success", job)
+      ProcessingLibrary.Enqueuer.enqueue(:processed, job)
     rescue
       _ ->
         Logger.error("#{log_context(job)})} failed with exception")
-        ProcessingLibrary.Enqueuer.enqueue("dead-letter", job)
+        ProcessingLibrary.Enqueuer.enqueue(:failed, job)
     end
 
     ProcessingLibrary.Dequeuer.dequeue(queue)

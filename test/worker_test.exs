@@ -32,10 +32,10 @@ defmodule WorkerTest do
 
     queue1 = ProcessingLibrary.Database.get_queue("queue1")
     queue2 = ProcessingLibrary.Database.get_queue("queue2")
-    dead_letter_queue = ProcessingLibrary.Database.get_queue("dead-letter")
+    failed_queue = ProcessingLibrary.Database.get_queue(:failed)
 
     assert {:ok, []} = queue1
     assert {:ok, []} = queue2
-    assert {:ok, [_job5]} = dead_letter_queue
+    assert {:ok, [_job5]} = failed_queue
   end
 end
