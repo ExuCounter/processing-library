@@ -1,15 +1,15 @@
-defmodule ProcessingLibrary.Queue do
+defmodule ProcessingLibrary.Database.Queue do
   @moduledoc """
-  This module is responsible for interacting with the queues. It serves as an abstraction layer over the queue data structure, providing a simplified interface for performing such operations without exposing the underlying implementation details.
+  This module is responsible for interacting with the queues in database. It serves as an abstraction layer over the queue data structure, providing a simplified interface for performing such operations without exposing the underlying implementation details.
 
   By using this module, other parts of the application can interact with the queues in a consistent and reliable way.
 
   ## Examples
 
-      iex> ProcessingLibrary.Queue.enqueue("queue", "value")
+      iex> ProcessingLibrary.Database.Queue.enqueue("queue", "value")
       {:ok, 1}
 
-      iex> ProcessingLibrary.Queue.dequeue("queue")
+      iex> ProcessingLibrary.Database.Queue.dequeue("queue")
       {:ok, "value"}
   """
 

@@ -8,7 +8,7 @@ defmodule ProcessingLibrary.Job do
   end
 
   def publish_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Queue.get_last(queue_name)
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.get_last(queue_name)
 
     if not is_nil(job_json) do
       ProcessingLibrary.PubSub.publish(queue_name, job_json)
