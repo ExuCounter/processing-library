@@ -69,8 +69,9 @@ defmodule ProcessingLibrary.QueueWorker do
 
       ProcessingLibrary.Enqueuer.enqueue(:processed, job)
     rescue
-      _ ->
+      e ->
         Logger.error("#{log_context(job)})} failed with exception")
+        Logger.error(Exception.message(e))
         ProcessingLibrary.Enqueuer.enqueue(:failed, job)
     end
 
