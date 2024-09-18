@@ -1,6 +1,6 @@
 defmodule ProcessingLibrary.Job do
-  @derive {Jason.Encoder, only: [:params, :worker_module, :jid]}
-  defstruct params: [], worker_module: nil, jid: nil
+  @derive {Jason.Encoder, only: [:params, :worker_module, :jid, :error, :start_at, :finish_at]}
+  defstruct params: [], worker_module: nil, jid: nil, error: nil, start_at: nil, finish_at: nil
 
   def construct(worker_module, params) do
     %ProcessingLibrary.Job{

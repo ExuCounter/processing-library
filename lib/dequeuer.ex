@@ -1,10 +1,11 @@
 defmodule ProcessingLibrary.Dequeuer do
-  def remove(queue_name, job_id) do
-    {:ok, jobs} = ProcessingLibrary.Database.get_queue(queue_name)
+  def remove(queue, job_id) do
+    {:ok, jobs} = ProcessingLibrary.Database.get_queue(queue)
     job = Enum.find(jobs, fn job -> ProcessingLibrary.Job.decode(job).jid == job_id end)
 
-    with :ok <- ProcessingLibrary.Database.Queue.remove(queue_name, job) do
-      {:ok, ProcessingLibrary.Job.decode(job)}
+    case job do
+      nil -> {:error, "Job not found"}
+      _ -> ProcessingLibrary.Database.Queue.remove(queue, job)
     end
   end
 

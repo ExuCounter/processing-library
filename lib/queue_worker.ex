@@ -59,20 +59,31 @@ defmodule ProcessingLibrary.QueueWorker do
   def process_job(%ProcessingLibrary.Job{} = job, queue) do
     Logger.info("#{log_context(job)} start")
 
+    start_time = DateTime.utc_now()
+
     try do
-      start_time = DateTime.utc_now()
       apply(job.worker_module |> String.to_atom(), :perform, [job.params])
       finish_time = DateTime.utc_now()
       diff_time = DateTime.diff(finish_time, start_time, :millisecond)
 
       Logger.info("#{log_context(job)} )} finished in #{diff_time}ms")
 
-      ProcessingLibrary.Enqueuer.enqueue(:processed, job)
+      ProcessingLibrary.Enqueuer.enqueue(:processed, %{
+        job
+        | start_at: start_time,
+          finish_at: finish_time
+      })
     rescue
       e ->
-        Logger.error("#{log_context(job)})} failed with exception")
-        Logger.error(Exception.message(e))
-        ProcessingLibrary.Enqueuer.enqueue(:failed, job)
+        finish_time = DateTime.utc_now()
+        Logger.error("#{log_context(job)})} failed with exception:\n#{Exception.message(e)}")
+
+        ProcessingLibrary.Enqueuer.enqueue(:failed, %{
+          job
+          | error: ~c"#{Exception.message(e)}",
+            start_at: start_time,
+            finish_at: finish_time
+        })
     end
 
     ProcessingLibrary.Dequeuer.dequeue(queue)
