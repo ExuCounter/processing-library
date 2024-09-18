@@ -26,12 +26,12 @@ defmodule EnqueuerTest do
     queue1 = ProcessingLibrary.Database.get_queue("queue1")
     queue2 = ProcessingLibrary.Database.get_queue("queue2")
 
-    serialized_job1 = ProcessingLibrary.Job.serialize(job1)
-    serialized_job2 = ProcessingLibrary.Job.serialize(job2)
-    serialized_job3 = ProcessingLibrary.Job.serialize(job3)
-    serialized_job4 = ProcessingLibrary.Job.serialize(job4)
+    encoded_job1 = ProcessingLibrary.Job.encode(job1)
+    encoded_job2 = ProcessingLibrary.Job.encode(job2)
+    encoded_job3 = ProcessingLibrary.Job.encode(job3)
+    encoded_job4 = ProcessingLibrary.Job.encode(job4)
 
-    assert {:ok, [serialized_job1]} == queue1
-    assert {:ok, [serialized_job4, serialized_job3, serialized_job2]} == queue2
+    assert {:ok, [encoded_job1]} == queue1
+    assert {:ok, [encoded_job4, encoded_job3, encoded_job2]} == queue2
   end
 end

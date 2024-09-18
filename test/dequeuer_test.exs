@@ -21,11 +21,11 @@ defmodule DequeuerTest do
       {:ok, dequeued_job2} = ProcessingLibrary.Dequeuer.dequeue(queue_name)
       {:ok, dequeued_job3} = ProcessingLibrary.Dequeuer.dequeue(queue_name)
 
-      parsed_dequeued_job1 = ProcessingLibrary.Job.deserialize(dequeued_job1)
-      parsed_dequeued_job2 = ProcessingLibrary.Job.deserialize(dequeued_job2)
+      decoded_dequeued_job1 = ProcessingLibrary.Job.decode(dequeued_job1)
+      decoded_dequeued_job2 = ProcessingLibrary.Job.decode(dequeued_job2)
 
-      assert parsed_dequeued_job1.jid == job1.jid
-      assert parsed_dequeued_job2.jid == job2.jid
+      assert decoded_dequeued_job1.jid == job1.jid
+      assert decoded_dequeued_job2.jid == job2.jid
       assert dequeued_job3 == nil
     end
   end
@@ -48,9 +48,9 @@ defmodule DequeuerTest do
 
       queue = ProcessingLibrary.Database.get_queue(queue_name)
 
-      serialized_job2 = ProcessingLibrary.Job.serialize(job2)
+      encoded_job2 = ProcessingLibrary.Job.encode(job2)
 
-      assert {:ok, [serialized_job2]} == queue
+      assert {:ok, [encoded_job2]} == queue
     end
   end
 end

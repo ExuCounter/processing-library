@@ -18,10 +18,10 @@ defmodule DatabaseTest do
 
     assert keys == [
              "processing_library:dummy_key",
-             "processing_library:queue2",
-             "processing_library:queue1"
+             "processing_library:queue1",
+             "processing_library:queue2"
            ]
 
-    assert queues == ["processing_library:queue2", "processing_library:queue1"]
+    assert queues == ["processing_library:queue1", "processing_library:queue2"]
   end
 end
