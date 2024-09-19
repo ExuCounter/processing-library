@@ -5,8 +5,6 @@ defmodule ProcessingLibrary.Redis do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def init(), do: init(nil)
-
   def init(_init_arg) do
     {:ok, conn} =
       Redix.start_link(
@@ -54,8 +52,8 @@ defmodule ProcessingLibrary.Redis do
     GenServer.call(__MODULE__, {:publish, namespaced(channel), job})
   end
 
-  def get_last_in_queue(queue) do
-    GenServer.call(__MODULE__, {:get_last_in_queue, namespaced(queue)})
+  def peek(queue, :rear) do
+    GenServer.call(__MODULE__, {:peek, :rear, namespaced(queue)})
   end
 
   def get_queue(queue) do
@@ -101,7 +99,7 @@ defmodule ProcessingLibrary.Redis do
     {:reply, response, conn}
   end
 
-  def handle_call({:get_last_in_queue, queue}, _from, conn) do
+  def handle_call({:peek, :rear, queue}, _from, conn) do
     {:ok, last} = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
 
     if last == [] do

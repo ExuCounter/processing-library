@@ -16,5 +16,5 @@ defmodule ProcessingLibrary.Database.Queue do
   defdelegate enqueue(queue, value), to: ProcessingLibrary.Redis, as: :enqueue
   defdelegate dequeue(queue), to: ProcessingLibrary.Redis, as: :dequeue
   defdelegate remove(queue, value), to: ProcessingLibrary.Redis, as: :remove
-  defdelegate get_last(queue), to: ProcessingLibrary.Redis, as: :get_last_in_queue
+  defdelegate peek(queue, position), to: ProcessingLibrary.Redis, as: :peek
 end
