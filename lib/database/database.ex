@@ -2,9 +2,12 @@ defmodule ProcessingLibrary.Database do
   use GenServer
 
   @moduledoc """
-  This module is responsible for interacting with the database. It serves as an abstraction layer over the database, providing a simplified interface for performing database operations without exposing the underlying implementation details.
+  This module is responsible for interacting with the database.
+  It serves as an abstraction layer over the database, providing a simplified interface
+  for performing database operations without exposing the underlying implementation details.
 
-  By using this module, other parts of the application can interact with the database in a consistent and reliable way.
+  By using this module, other parts of the application
+  can interact with the database in a consistent and reliable way.
 
   ## Examples
 

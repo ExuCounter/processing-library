@@ -25,4 +25,21 @@ defmodule ProcessingLibrary.Stats do
       Map.put(acc, s, stat(s))
     end)
   end
+
+  def job_info(job_id) do
+    {:ok, queues} = ProcessingLibrary.Database.get_queues()
+
+    jobs =
+      Enum.map(queues, fn queue -> ProcessingLibrary.Database.get_queue(queue) end)
+      |> Enum.reduce([], fn {:ok, jobs}, acc ->
+        acc ++ jobs
+      end)
+
+    job = Enum.find(jobs, fn job -> ProcessingLibrary.Job.decode(job).jid == job_id end)
+
+    case job do
+      nil -> {:error, "Job not found"}
+      _ -> ProcessingLibrary.Job.decode(job)
+    end
+  end
 end

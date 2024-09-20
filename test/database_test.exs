@@ -16,7 +16,7 @@ defmodule DatabaseTest do
     {:ok, keys} = ProcessingLibrary.Database.get_keys()
     {:ok, queues} = ProcessingLibrary.Database.get_queues()
 
-    assert keys == [
+    assert Enum.sort(keys) == [
              "processing_library:dummy_key",
              "processing_library:queue1",
              "processing_library:queue2"
