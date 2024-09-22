@@ -22,6 +22,6 @@ defmodule DatabaseTest do
              "processing_library:queue2"
            ]
 
-    assert queues == ["processing_library:queue1", "processing_library:queue2"]
+    assert queues == [:queue2, :queue1]
   end
 end

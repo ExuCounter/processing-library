@@ -16,9 +16,12 @@ defmodule ProcessingLibrary.Redis do
     {:ok, conn}
   end
 
-  defp namespaced(key) when is_atom(key), do: namespaced(key |> Atom.to_string())
+  defp extract_key(key),
+    do: key |> String.split(":", trim: true) |> List.last() |> String.to_atom()
 
-  defp namespaced(key) do
+  defp namespace_key(key) when is_atom(key), do: namespace_key(key |> Atom.to_string())
+
+  defp namespace_key(key) do
     namespace = ProcessingLibrary.Env.get_redis_namespace()
 
     if String.contains?(key, namespace) do
@@ -37,46 +40,48 @@ defmodule ProcessingLibrary.Redis do
   end
 
   def remove(queue, value) do
-    GenServer.call(__MODULE__, {:remove, namespaced(queue), value})
+    GenServer.call(__MODULE__, {:remove, namespace_key(queue), value})
   end
 
   def enqueue(queue, value) do
-    GenServer.call(__MODULE__, {:queue, namespaced(queue), value})
+    GenServer.call(__MODULE__, {:queue, namespace_key(queue), value})
   end
 
   def dequeue(queue) do
-    GenServer.call(__MODULE__, {:dequeue, namespaced(queue)})
-  end
-
-  def publish(channel, job) do
-    GenServer.call(__MODULE__, {:publish, namespaced(channel), job})
+    GenServer.call(__MODULE__, {:dequeue, namespace_key(queue)})
   end
 
   def peek(queue, :rear) do
-    GenServer.call(__MODULE__, {:peek, :rear, namespaced(queue)})
+    GenServer.call(__MODULE__, {:peek, :rear, namespace_key(queue)})
   end
 
   def get_queue(queue) do
-    GenServer.call(__MODULE__, {:get_queue, namespaced(queue)})
+    GenServer.call(__MODULE__, {:get_queue, namespace_key(queue)})
+  end
+
+  def set(key, value) do
+    GenServer.call(__MODULE__, {:set, namespace_key(key), value})
   end
 
   def get_queues() do
     GenServer.call(__MODULE__, :get_queues)
   end
 
-  def set(key, value) do
-    GenServer.call(__MODULE__, {:set, namespaced(key), value})
-  end
-
   def filter_keys(conn, keys, type) do
     Enum.filter(keys, fn key ->
-      Redix.command!(conn, ["TYPE", key]) == type and key !== namespaced(:processed) and
-        key !== namespaced(:failed)
+      Redix.command!(conn, ["TYPE", namespace_key(key)]) == type
+    end)
+  end
+
+  def filter_out_stats_queues(queues) do
+    Enum.filter(queues, fn queue ->
+      not ProcessingLibrary.Stats.is_stats_queue?(queue)
     end)
   end
 
   def filter_queues(conn, keys) do
-    filter_keys(conn, keys, "list")
+    queue_type = "list"
+    filter_keys(conn, keys, queue_type) |> filter_out_stats_queues()
   end
 
   def handle_call({:queue, queue, value}, _from, conn) do
@@ -94,33 +99,30 @@ defmodule ProcessingLibrary.Redis do
     {:reply, response, conn}
   end
 
-  def handle_call({:publish, channel, job}, _from, conn) do
-    response = Redix.command(conn, ~w(PUBLISH #{channel} #{job}))
-    {:reply, response, conn}
-  end
-
   def handle_call({:peek, :rear, queue}, _from, conn) do
-    {:ok, last} = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
+    {:ok, range} = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
 
-    if last == [] do
+    if range == [] do
       {:reply, {:ok, nil}, conn}
     else
+      [last | _] = range
       {:reply, {:ok, last}, conn}
     end
   end
 
   def handle_call(:keys, _from, conn) do
-    response = Redix.command(conn, ~w(KEYS #{ProcessingLibrary.Env.get_redis_namespace()}:*))
+    response = Redix.command(conn, ~w(KEYS #{namespace_key("*")}))
     {:reply, response, conn}
   end
 
   def handle_call(:get_queues, _from, conn) do
-    {:ok, keys} =
-      Redix.command(conn, ~w(KEYS #{ProcessingLibrary.Env.get_redis_namespace()}:*))
-
-    queues = ProcessingLibrary.Redis.filter_queues(conn, keys)
-
-    {:reply, {:ok, queues}, conn}
+    with {:ok, keys} <- Redix.command(conn, ~w(KEYS #{namespace_key("*")})),
+         keys <- Enum.map(keys, &extract_key/1),
+         queues <- ProcessingLibrary.Redis.filter_queues(conn, keys) do
+      {:reply, {:ok, queues}, conn}
+    else
+      error -> {:reply, {:error, error}, conn}
+    end
   end
 
   def handle_call(:flush_db, _from, conn) do

@@ -2,17 +2,17 @@ defmodule ProcessingLibrary.QueueWorker do
   use GenServer
   require Logger
 
-  def init(_init_arg) do
-    {:ok, pubsub_conn} = ProcessingLibrary.PubSub.start_link()
-    {:ok, queues} = ProcessingLibrary.Database.get_queues()
-
-    subscribe_to_queues(pubsub_conn, queues)
-    start_processing(queues)
-
-    {:ok, %{pubsub_conn: pubsub_conn}}
+  def init(_) do
+    with {:ok, queues} <- ProcessingLibrary.Database.get_queues() do
+      start_processing(queues)
+      {:ok, %{}}
+    else
+      error ->
+        {:error, error}
+    end
   end
 
-  def start_link(_init_arg) do
+  def start_link(_) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
@@ -20,39 +20,25 @@ defmodule ProcessingLibrary.QueueWorker do
     "#{worker_module}[#{jid}]"
   end
 
-  def publish_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
-
-    if not is_nil(job_json) do
-      ProcessingLibrary.PubSub.publish(queue_name, job_json)
-    end
-  end
-
-  def subscribe_to_queues(conn, patterns) do
-    Enum.each(patterns, fn pattern ->
-      Redix.PubSub.subscribe(conn, pattern, self())
-    end)
-  end
-
   def start_processing(queues) do
     Enum.each(queues, fn queue ->
-      namespace = ProcessingLibrary.Env.get_redis_namespace()
-      ^namespace <> ":" <> queue = queue
-
       publish_last_job(queue)
     end)
   end
 
-  def handle_info(
-        {:redix_pubsub, _pubsub_conn, _ref, :message, %{payload: payload, channel: queue}},
-        state
-      ) do
-    process_job(queue, payload)
-    {:noreply, state}
+  def publish_last_job(queue_name) do
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
+
+    if not is_nil(job_json) do
+      GenServer.cast(__MODULE__, {:publish, queue_name, job_json})
+    end
   end
 
-  def handle_info({:redix_pubsub, _pubsub_conn, _ref, :subscribed, %{channel: channel}}, state) do
-    Logger.info("Redis pub/sub successfuly subscribed to #{channel} channel")
+  def handle_cast(
+        {:publish, queue_name, job_json},
+        state
+      ) do
+    process_job(job_json, queue_name)
     {:noreply, state}
   end
 
@@ -87,11 +73,10 @@ defmodule ProcessingLibrary.QueueWorker do
     end
 
     ProcessingLibrary.Dequeuer.dequeue(queue)
-
     publish_last_job(queue)
   end
 
-  def process_job(queue, job_json) when is_bitstring(job_json) do
+  def process_job(job_json, queue) when is_bitstring(job_json) do
     job_json |> ProcessingLibrary.Job.decode() |> process_job(queue)
   end
 end

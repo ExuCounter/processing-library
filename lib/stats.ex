@@ -1,4 +1,10 @@
 defmodule ProcessingLibrary.Stats do
+  @stats_queues [:failed, :processed, :scheduled]
+
+  def is_stats_queue?(queue) do
+    Enum.member?(@stats_queues, queue)
+  end
+
   def stat(:failed) do
     {:ok, jobs} = ProcessingLibrary.Database.get_queue(:failed)
     length(jobs)
@@ -20,7 +26,7 @@ defmodule ProcessingLibrary.Stats do
   end
 
   def stats() do
-    [:processed, :scheduled, :failed]
+    @stats_queues
     |> Enum.reduce(%{}, fn s, acc ->
       Map.put(acc, s, stat(s))
     end)
