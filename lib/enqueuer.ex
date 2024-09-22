@@ -5,12 +5,11 @@ defmodule ProcessingLibrary.Enqueuer do
     with {:ok, _} <- ProcessingLibrary.Database.Queue.enqueue(queue_name, encoded_job_data),
          false <- ProcessingLibrary.Stats.is_stats_queue?(queue_name) do
       ProcessingLibrary.QueueWorker.publish_last_job(queue_name)
+      {:ok, job_data}
     else
       error ->
         {:error, error}
     end
-
-    {:ok, job_data}
   end
 
   def enqueue(queue_name, worker_module, params) do

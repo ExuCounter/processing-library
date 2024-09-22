@@ -3,13 +3,9 @@ defmodule ProcessingLibrary.QueueWorker do
   require Logger
 
   def init(_) do
-    with {:ok, queues} <- ProcessingLibrary.Database.get_queues() do
-      start_processing(queues)
-      {:ok, %{}}
-    else
-      error ->
-        {:error, error}
-    end
+    {:ok, queues} = ProcessingLibrary.Database.get_queues()
+    start_processing(queues)
+    {:ok, %{}}
   end
 
   def start_link(_) do
@@ -22,20 +18,42 @@ defmodule ProcessingLibrary.QueueWorker do
 
   def start_processing(queues) do
     Enum.each(queues, fn queue ->
-      publish_last_job(queue)
+      process_last_job(queue)
     end)
+  end
+
+  def send_call_message(worker_name, message) do
+    case GenServer.whereis(worker_name) do
+      nil ->
+        {:error, :worker_not_alive}
+
+      pid ->
+        case GenServer.call(pid, message) do
+          {:ok, response} -> {:ok, response}
+          {:error, reason} -> {:error, reason}
+        end
+    end
+  end
+
+  defp process_last_job(queue_name) do
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
+
+    if not is_nil(job_json) do
+      process_job(job_json, queue_name)
+    end
   end
 
   def publish_last_job(queue_name) do
     {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
 
     if not is_nil(job_json) do
-      GenServer.cast(__MODULE__, {:publish, queue_name, job_json})
+      send_call_message(__MODULE__, {:publish, queue_name, job_json})
     end
   end
 
-  def handle_cast(
+  def handle_call(
         {:publish, queue_name, job_json},
+        _from,
         state
       ) do
     process_job(job_json, queue_name)
@@ -73,7 +91,7 @@ defmodule ProcessingLibrary.QueueWorker do
     end
 
     ProcessingLibrary.Dequeuer.dequeue(queue)
-    publish_last_job(queue)
+    process_last_job(queue)
   end
 
   def process_job(job_json, queue) when is_bitstring(job_json) do
