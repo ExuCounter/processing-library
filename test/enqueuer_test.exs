@@ -32,6 +32,6 @@ defmodule EnqueuerTest do
     encoded_job4 = ProcessingLibrary.Job.encode(job4)
 
     assert {:ok, [encoded_job1]} == queue1
-    assert {:ok, [encoded_job4, encoded_job3, encoded_job2]} == queue2
+    assert {:ok, [encoded_job2, encoded_job3, encoded_job4]} == queue2
   end
 end

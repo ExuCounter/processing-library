@@ -22,21 +22,8 @@ defmodule ProcessingLibrary.QueueWorker do
     end)
   end
 
-  def send_call_message(worker_name, message) do
-    case GenServer.whereis(worker_name) do
-      nil ->
-        {:error, :worker_not_alive}
-
-      pid ->
-        case GenServer.call(pid, message) do
-          {:ok, response} -> {:ok, response}
-          {:error, reason} -> {:error, reason}
-        end
-    end
-  end
-
   defp process_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :front)
 
     if not is_nil(job_json) do
       process_job(job_json, queue_name)
@@ -44,16 +31,15 @@ defmodule ProcessingLibrary.QueueWorker do
   end
 
   def publish_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :rear)
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :front)
 
     if not is_nil(job_json) do
-      send_call_message(__MODULE__, {:publish, queue_name, job_json})
+      GenServer.cast(__MODULE__, {:publish, queue_name, job_json})
     end
   end
 
-  def handle_call(
+  def handle_cast(
         {:publish, queue_name, job_json},
-        _from,
         state
       ) do
     process_job(job_json, queue_name)

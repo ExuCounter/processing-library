@@ -55,6 +55,10 @@ defmodule ProcessingLibrary.Redis do
     GenServer.call(__MODULE__, {:peek, :rear, namespace_key(queue)})
   end
 
+  def peek(queue, :front) do
+    GenServer.call(__MODULE__, {:peek, :front, namespace_key(queue)})
+  end
+
   def get_queue(queue) do
     GenServer.call(__MODULE__, {:get_queue, namespace_key(queue)})
   end
@@ -85,12 +89,12 @@ defmodule ProcessingLibrary.Redis do
   end
 
   def handle_call({:queue, queue, value}, _from, conn) do
-    response = Redix.command(conn, ~w(LPUSH #{queue} #{value}))
+    response = Redix.command(conn, ~w(RPUSH #{queue} #{value}))
     {:reply, response, conn}
   end
 
   def handle_call({:dequeue, queue}, _from, conn) do
-    response = Redix.command(conn, ~w(RPOP #{queue}))
+    response = Redix.command(conn, ~w(LPOP #{queue}))
     {:reply, response, conn}
   end
 
@@ -99,8 +103,9 @@ defmodule ProcessingLibrary.Redis do
     {:reply, response, conn}
   end
 
-  def handle_call({:peek, :rear, queue}, _from, conn) do
-    {:ok, range} = Redix.command(conn, ~w(LRANGE #{queue} -1 -1))
+  def handle_call({:peek, position, queue}, _from, conn) do
+    index = if position == :front, do: 0, else: -1
+    {:ok, range} = Redix.command(conn, ~w(LRANGE #{queue} #{index} #{index}))
 
     if range == [] do
       {:reply, {:ok, nil}, conn}
