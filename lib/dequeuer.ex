@@ -9,5 +9,5 @@ defmodule ProcessingLibrary.Dequeuer do
     end
   end
 
-  defdelegate dequeue(queue), to: ProcessingLibrary.Redis, as: :dequeue
+  defdelegate dequeue(queue), to: ProcessingLibrary.Database.Queue, as: :dequeue
 end

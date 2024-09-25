@@ -17,6 +17,7 @@ defmodule ProcessingLibrary.Database do
 
   defdelegate init(init_arg), to: ProcessingLibrary.Redis, as: :init
   defdelegate start_link(init_arg), to: ProcessingLibrary.Redis, as: :start_link
+  defdelegate get_queues(opts), to: ProcessingLibrary.Redis, as: :get_queues
   defdelegate get_queues(), to: ProcessingLibrary.Redis, as: :get_queues
   defdelegate get_queue(queue), to: ProcessingLibrary.Redis, as: :get_queue
   defdelegate get_keys(), to: ProcessingLibrary.Redis, as: :get_keys

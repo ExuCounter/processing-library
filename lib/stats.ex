@@ -33,7 +33,7 @@ defmodule ProcessingLibrary.Stats do
   end
 
   def job_info(job_id) do
-    {:ok, queues} = ProcessingLibrary.Database.get_queues()
+    {:ok, queues} = ProcessingLibrary.Database.get_queues(include_reserved: true)
 
     jobs =
       Enum.map(queues, fn queue -> ProcessingLibrary.Database.get_queue(queue) end)

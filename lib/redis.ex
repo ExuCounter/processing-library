@@ -67,8 +67,8 @@ defmodule ProcessingLibrary.Redis do
     GenServer.call(__MODULE__, {:set, namespace_key(key), value})
   end
 
-  def get_queues() do
-    GenServer.call(__MODULE__, :get_queues)
+  def get_queues(opts \\ []) do
+    GenServer.call(__MODULE__, {:get_queues, opts})
   end
 
   def filter_keys(conn, keys, type) do
@@ -84,8 +84,7 @@ defmodule ProcessingLibrary.Redis do
   end
 
   def filter_queues(conn, keys) do
-    queue_type = "list"
-    filter_keys(conn, keys, queue_type) |> filter_out_reserved_queues()
+    filter_keys(conn, keys, "list")
   end
 
   def handle_call({:queue, queue, value}, _from, conn) do
@@ -120,11 +119,17 @@ defmodule ProcessingLibrary.Redis do
     {:reply, response, conn}
   end
 
-  def handle_call(:get_queues, _from, conn) do
+  def handle_call({:get_queues, opts}, _from, conn) do
+    include_reserved = Keyword.get(opts, :include_reserved, false)
+
     with {:ok, keys} <- Redix.command(conn, ~w(KEYS #{namespace_key("*")})),
          keys <- Enum.map(keys, &extract_key/1),
          queues <- ProcessingLibrary.Redis.filter_queues(conn, keys) do
-      {:reply, {:ok, queues}, conn}
+      if include_reserved do
+        {:reply, {:ok, queues}, conn}
+      else
+        {:reply, {:ok, ProcessingLibrary.Redis.filter_out_reserved_queues(queues)}, conn}
+      end
     else
       error -> {:reply, {:error, error}, conn}
     end
