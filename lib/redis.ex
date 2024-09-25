@@ -77,15 +77,15 @@ defmodule ProcessingLibrary.Redis do
     end)
   end
 
-  def filter_out_stats_queues(queues) do
+  def filter_out_reserved_queues(queues) do
     Enum.filter(queues, fn queue ->
-      not ProcessingLibrary.Stats.is_stats_queue?(queue)
+      not ProcessingLibrary.is_reserved_queue?(queue)
     end)
   end
 
   def filter_queues(conn, keys) do
     queue_type = "list"
-    filter_keys(conn, keys, queue_type) |> filter_out_stats_queues()
+    filter_keys(conn, keys, queue_type) |> filter_out_reserved_queues()
   end
 
   def handle_call({:queue, queue, value}, _from, conn) do

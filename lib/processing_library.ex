@@ -32,6 +32,8 @@ defmodule ProcessingLibrary do
       %{processed: 105, scheduled: 70, failed: 5}
   """
 
+  def is_reserved_queue?(queue), do: ProcessingLibrary.Stats.is_stats_queue?(queue)
+
   defdelegate enqueue(queue, worker_module, params),
     to: ProcessingLibrary.Enqueuer,
     as: :enqueue

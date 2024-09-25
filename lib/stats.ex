@@ -1,5 +1,5 @@
 defmodule ProcessingLibrary.Stats do
-  @stats_queues [:failed, :processed, :scheduled]
+  @stats_queues [:processed, :failed]
 
   def is_stats_queue?(queue) do
     Enum.member?(@stats_queues, queue)
@@ -26,7 +26,7 @@ defmodule ProcessingLibrary.Stats do
   end
 
   def stats() do
-    @stats_queues
+    (@stats_queues ++ [:scheduled])
     |> Enum.reduce(%{}, fn s, acc ->
       Map.put(acc, s, stat(s))
     end)
