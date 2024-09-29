@@ -18,37 +18,26 @@ defmodule ProcessingLibrary.QueueWorker do
 
   def start_processing(queues) do
     Enum.each(queues, fn queue ->
-      process_last_job(queue)
+      process_job(queue)
     end)
   end
 
-  defp process_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :front)
-
-    if not is_nil(job_json) do
-      process_job(job_json, queue_name)
-    end
-  end
-
-  def publish_last_job(queue_name) do
-    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue_name, :front)
-
-    if not is_nil(job_json) do
-      GenServer.cast(__MODULE__, {:publish, queue_name, job_json})
-    end
+  def publish_job(queue) do
+    GenServer.cast(__MODULE__, {:publish, queue})
   end
 
   def handle_cast(
-        {:publish, queue_name, job_json},
+        {:publish, queue},
         state
       ) do
-    process_job(job_json, queue_name)
+    process_job(queue)
     {:noreply, state}
   end
 
   def process_job(%ProcessingLibrary.Job{} = job, queue) do
     Logger.info("#{log_context(job)} start")
 
+    ProcessingLibrary.Notification.notify(:processing_job, job, queue)
     start_time = DateTime.utc_now()
 
     try do
@@ -63,10 +52,15 @@ defmodule ProcessingLibrary.QueueWorker do
         | start_at: start_time,
           finish_at: finish_time
       })
+
+      ProcessingLibrary.Notification.notify(:move_job, job, queue)
     rescue
       e ->
         finish_time = DateTime.utc_now()
+        diff_time = DateTime.diff(finish_time, start_time, :millisecond)
+
         Logger.error("#{log_context(job)})} failed with exception:\n#{Exception.message(e)}")
+        Logger.info("#{log_context(job)} )} finished in #{diff_time}ms")
 
         ProcessingLibrary.Enqueuer.enqueue(:failed, %{
           job
@@ -74,13 +68,19 @@ defmodule ProcessingLibrary.QueueWorker do
             start_at: start_time,
             finish_at: finish_time
         })
+
+        ProcessingLibrary.Notification.notify(:move_job, job, queue)
     end
 
     ProcessingLibrary.Dequeuer.dequeue(queue)
-    process_last_job(queue)
+    process_job(queue)
   end
 
-  def process_job(job_json, queue) when is_bitstring(job_json) do
-    job_json |> ProcessingLibrary.Job.decode() |> process_job(queue)
+  def process_job(queue) do
+    {:ok, job_json} = ProcessingLibrary.Database.Queue.peek(queue, :front)
+
+    if not is_nil(job_json) do
+      job_json |> ProcessingLibrary.Job.decode() |> process_job(queue)
+    end
   end
 end

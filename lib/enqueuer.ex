@@ -4,7 +4,8 @@ defmodule ProcessingLibrary.Enqueuer do
 
     with {:ok, _} <- ProcessingLibrary.Database.Queue.enqueue(queue_name, encoded_job_data),
          false <- ProcessingLibrary.is_reserved_queue?(queue_name) do
-      ProcessingLibrary.QueueWorker.publish_last_job(queue_name)
+      ProcessingLibrary.QueueWorker.publish_job(queue_name)
+      ProcessingLibrary.Notification.notify(:create_job, job_data, queue_name)
       {:ok, job_data}
     else
       error ->

@@ -44,7 +44,7 @@ defmodule DequeuerTest do
 
       assert {:ok, [_job1, _job2]} = queue
 
-      ProcessingLibrary.Dequeuer.remove(queue_name, job1.jid)
+      ProcessingLibrary.Dequeuer.remove(job1.jid)
 
       queue = ProcessingLibrary.Database.get_queue(queue_name)
 

@@ -14,7 +14,8 @@ defmodule ProcessingLibrary.Supervisor do
         children ++
           [
             ProcessingLibrary.Database,
-            ProcessingLibrary.QueueWorker
+            ProcessingLibrary.QueueWorker,
+            ProcessingLibrary.Notification
           ]
       else
         children

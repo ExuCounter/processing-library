@@ -42,13 +42,13 @@ defmodule ProcessingLibrary do
     to: ProcessingLibrary.Enqueuer,
     as: :enqueue
 
-  defdelegate dequeue(queue),
-    to: ProcessingLibrary.Dequeuer,
-    as: :dequeue
-
-  defdelegate remove(queue, job_id),
+  defdelegate remove(job_id),
     to: ProcessingLibrary.Dequeuer,
     as: :remove
+
+  defdelegate find_job(job_id),
+    to: ProcessingLibrary.Dequeuer,
+    as: :find_job
 
   defdelegate stats(),
     to: ProcessingLibrary.Stats,

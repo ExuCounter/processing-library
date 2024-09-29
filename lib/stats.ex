@@ -5,13 +5,8 @@ defmodule ProcessingLibrary.Stats do
     Enum.member?(@stats_queues, queue)
   end
 
-  def stat(:failed) do
-    {:ok, jobs} = ProcessingLibrary.Database.get_queue(:failed)
-    length(jobs)
-  end
-
-  def stat(:processed) do
-    {:ok, jobs} = ProcessingLibrary.Database.get_queue(:processed)
+  def stat(queue) when queue in @stats_queues do
+    {:ok, jobs} = ProcessingLibrary.Database.get_queue(queue)
     length(jobs)
   end
 
@@ -30,22 +25,5 @@ defmodule ProcessingLibrary.Stats do
     |> Enum.reduce(%{}, fn s, acc ->
       Map.put(acc, s, stat(s))
     end)
-  end
-
-  def job_info(job_id) do
-    {:ok, queues} = ProcessingLibrary.Database.get_queues(include_reserved: true)
-
-    jobs =
-      Enum.map(queues, fn queue -> ProcessingLibrary.Database.get_queue(queue) end)
-      |> Enum.reduce([], fn {:ok, jobs}, acc ->
-        acc ++ jobs
-      end)
-
-    job = Enum.find(jobs, fn job -> ProcessingLibrary.Job.decode(job).jid == job_id end)
-
-    case job do
-      nil -> {:error, "Job not found"}
-      _ -> ProcessingLibrary.Job.decode(job)
-    end
   end
 end
